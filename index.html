@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>مسبحة إلكترونية</title>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Arabic:wght@400;500;700&family=Roboto:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root{
+  --primary:#01875f; --on-primary:#fff;
+  --container:#d3f3e5; --on-container:#00291b;
+  --surface:#fff; --surface-var:#f1f3f4; --outline:#dadce0;
+  --text:#202124; --text2:#5f6368;
+  box-sizing:border-box;
+  padding-top:env(safe-area-inset-top,0px);
+  padding-bottom:env(safe-area-inset-bottom,0px);
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){--primary:#5cd6a6;--on-primary:#00382a;--container:#0f3d2c;--on-container:#c4f2de;--surface:#131314;--surface-var:#1e1f20;--outline:#3c4043;--text:#e8eaed;--text2:#9aa0a6}
+}
+:root[data-theme="dark"]{--primary:#5cd6a6;--on-primary:#00382a;--container:#0f3d2c;--on-container:#c4f2de;--surface:#131314;--surface-var:#1e1f20;--outline:#3c4043;--text:#e8eaed;--text2:#9aa0a6}
+*,*::before,*::after{box-sizing:inherit}
+html,body{height:100%;margin:0}
+body{background:var(--surface);color:var(--text);font-family:"Roboto","Noto Sans Arabic",Tahoma,sans-serif;-webkit-tap-highlight-color:transparent;user-select:none;-webkit-user-select:none}
+.app{height:100%;display:flex;flex-direction:column;max-width:480px;margin:0 auto}
+header{height:60px;display:flex;align-items:center;gap:12px;padding:0 20px;font-size:20px;font-weight:500;flex:none}
+header .logo{width:32px;height:32px;border-radius:10px;background:var(--primary);color:var(--on-primary);display:grid;place-items:center}
+main{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:space-between;padding:8px 20px 24px;min-height:0}
+
+.card{width:100%;background:var(--surface-var);border-radius:28px;padding:22px 20px;display:flex;flex-direction:column;align-items:center;gap:6px}
+.card .label{font-size:14px;color:var(--text2);font-weight:500}
+.value{height:104px;display:flex;align-items:center;justify-content:center}
+#num{font-size:88px;font-weight:500;line-height:1;color:var(--text);font-variant-numeric:tabular-nums;display:none}
+#num.bump{animation:bump .22s ease}
+@keyframes bump{40%{transform:scale(1.08)}}
+.dots{display:flex;gap:14px}
+.dots i{width:16px;height:16px;border-radius:50%;background:var(--outline)}
+
+#tap{
+  position:relative;overflow:hidden;width:min(66vw,270px);aspect-ratio:1;border-radius:50%;border:0;padding:0;cursor:pointer;
+  background:var(--primary);
+  box-shadow:0 1px 3px rgba(60,64,67,.3),0 6px 14px 4px rgba(60,64,67,.18);
+  transition:transform .12s ease,box-shadow .12s ease;touch-action:manipulation
+}
+#tap::before{content:"";position:absolute;inset:12%;border-radius:50%;border:2px solid var(--on-primary);opacity:.35}
+#tap::after{content:"";position:absolute;inset:38%;border-radius:50%;background:var(--on-primary);opacity:.9}
+#tap:active{transform:scale(.96);box-shadow:0 1px 2px rgba(60,64,67,.3)}
+.ripple{position:absolute;border-radius:50%;background:var(--on-primary);opacity:.35;transform:scale(0);animation:rip .55s ease-out forwards;pointer-events:none}
+@keyframes rip{to{transform:scale(1);opacity:0}}
+
+.actions{display:flex;gap:12px;width:100%}
+.actions button{
+  flex:1;height:48px;border-radius:24px;font:inherit;font-size:15px;font-weight:500;cursor:pointer;
+  display:flex;align-items:center;justify-content:center;gap:8px;touch-action:manipulation
+}
+#toggle{border:0;background:var(--container);color:var(--on-container)}
+#reset{border:1px solid var(--outline);background:transparent;color:var(--primary)}
+.actions button:active{filter:brightness(.94)}
+button:focus-visible{outline:3px solid var(--primary);outline-offset:3px}
+svg{width:20px;height:20px;fill:currentColor;flex:none}
+@media (prefers-reduced-motion:reduce){#tap,#num.bump,.ripple{animation:none;transition:none}}
+</style>
+</head>
+<body>
+<div class="app">
+  <header>
+    <div class="logo" aria-hidden="true"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="5"/></svg></div>
+    مسبحة
+  </header>
+
+  <main>
+    <section class="card" aria-live="polite">
+      <div class="label">عدد التسبيحات</div>
+      <div class="value">
+        <div class="dots" id="dots" aria-label="العدد مخفي"><i></i><i></i><i></i></div>
+        <div id="num">0</div>
+      </div>
+    </section>
+
+    <button id="tap" type="button" aria-label="عدّ"></button>
+
+    <div class="actions">
+      <button id="toggle" type="button"></button>
+      <button id="reset" type="button"></button>
+    </div>
+  </main>
+</div>
+
+<script>
+(function(){
+  var EYE='<svg viewBox="0 0 24 24"><path d="M12 4.5C7 4.5 2.73 7.61 1 12c1.73 4.39 6 7.5 11 7.5s9.27-3.11 11-7.5c-1.73-4.39-6-7.5-11-7.5zM12 17c-2.76 0-5-2.24-5-5s2.24-5 5-5 5 2.24 5 5-2.24 5-5 5zm0-8c-1.66 0-3 1.34-3 3s1.34 3 3 3 3-1.34 3-3-1.34-3-3-3z"/></svg>';
+  var EYE_OFF='<svg viewBox="0 0 24 24"><path d="M12 7c2.76 0 5 2.24 5 5 0 .65-.13 1.26-.36 1.83l2.92 2.92c1.51-1.26 2.7-2.89 3.43-4.75-1.73-4.39-6-7.5-11-7.5-1.4 0-2.74.25-3.98.7l2.16 2.16C10.74 7.13 11.35 7 12 7zM2 4.27l2.28 2.28.46.46C3.08 8.3 1.78 10.02 1 12c1.73 4.39 6 7.5 11 7.5 1.55 0 3.03-.3 4.38-.84l.42.42L19.73 22 21 20.73 3.27 3 2 4.27zM7.53 9.8l1.55 1.55c-.05.21-.08.43-.08.65 0 1.66 1.34 3 3 3 .22 0 .44-.03.65-.08l1.55 1.55c-.67.33-1.41.53-2.2.53-2.76 0-5-2.24-5-5 0-.79.2-1.53.53-2.2zm4.31-.78l3.15 3.15.02-.16c0-1.66-1.34-3-3-3l-.17.01z"/></svg>';
+  var REFRESH='<svg viewBox="0 0 24 24"><path d="M17.65 6.35C16.2 4.9 14.21 4 12 4c-4.42 0-7.99 3.58-7.99 8s3.57 8 7.99 8c3.73 0 6.84-2.55 7.73-6h-2.08c-.82 2.33-3.04 4-5.65 4-3.31 0-6-2.69-6-6s2.69-6 6-6c1.66 0 3.14.69 4.22 1.78L13 11h7V4l-2.35 2.35z"/></svg>';
+
+  var n=0, shown=false, confirmTimer=null;
+  var $=function(id){return document.getElementById(id)};
+  var num=$('num'), dots=$('dots'), tap=$('tap'), toggle=$('toggle'), reset=$('reset');
+
+  try { n = parseInt(localStorage.getItem('tasbih-count'),10) || 0; } catch(e){}
+  function save(){ try{ localStorage.setItem('tasbih-count', String(n)); }catch(e){} }
+
+  function setReset(confirming){
+    reset.innerHTML = REFRESH + (confirming ? 'اضغط للتأكيد' : 'تصفير');
+  }
+
+  function render(){
+    num.textContent = String(n);
+    num.style.display = shown ? 'block' : 'none';
+    dots.style.display = shown ? 'none' : 'flex';
+    toggle.innerHTML = (shown ? EYE_OFF : EYE) + (shown ? 'إخفاء العدد' : 'إظهار العدد');
+  }
+
+  function ripple(e){
+    var r = tap.getBoundingClientRect();
+    var d = Math.max(r.width, r.height) * 2;
+    var cx = (e && e.detail && e.clientX) ? e.clientX - r.left : r.width/2;
+    var cy = (e && e.detail && e.clientY) ? e.clientY - r.top : r.height/2;
+    var s = document.createElement('span');
+    s.className = 'ripple';
+    s.style.cssText = 'width:'+d+'px;height:'+d+'px;left:'+(cx-d/2)+'px;top:'+(cy-d/2)+'px';
+    tap.appendChild(s);
+    setTimeout(function(){ s.remove(); }, 600);
+  }
+
+  tap.addEventListener('click', function(e){
+    n++; save(); render(); ripple(e);
+    if (shown) { num.classList.remove('bump'); void num.offsetWidth; num.classList.add('bump'); }
+    try { if (navigator.vibrate) navigator.vibrate(12); } catch(err){}
+  });
+
+  toggle.addEventListener('click', function(){ shown = !shown; render(); });
+
+  reset.addEventListener('click', function(){
+    if (confirmTimer) {
+      clearTimeout(confirmTimer); confirmTimer = null;
+      n = 0; save(); render(); setReset(false);
+    } else {
+      setReset(true);
+      confirmTimer = setTimeout(function(){ confirmTimer = null; setReset(false); }, 3000);
+    }
+  });
+
+  render(); setReset(false);
+})();
+</script>
+</body>
+</html>
